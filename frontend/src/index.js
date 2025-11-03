@@ -1,11 +1,12 @@
 import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import './index.css'; // optional if you have Tailwind or global styles
 
-function App() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 text-gray-900">
-      <h1 className="text-3xl font-bold">Receipt OCR App</h1>
-    </div>
-  );
-}
-
-export default App;
+// Create a React root and render the App component
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);

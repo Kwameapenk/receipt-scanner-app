@@ -23,6 +23,7 @@ const client = new vision.ImageAnnotatorClient({
 
 // Upload endpoint
 app.post("/upload", upload.single("receipt"), async (req, res) => {
+  console.log("Received file:", req.file);
   if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
   try {

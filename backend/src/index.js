@@ -52,7 +52,7 @@ app.post("/upload", upload.single("receipt"), async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5050;
 
 app.get("/", (req, res) => {
   res.send("Receipt OCR API is running ✅");

@@ -8,10 +8,6 @@ import sharp from "sharp";
 
 dotenv.config();
 
-console.log("🔍 DEBUG: App starting...");
-console.log("🔍 Current directory:", process.cwd());
-console.log("🔍 Files in current directory:", fs.readdirSync('.'));
-
 const app = express();
 app.use(express.json());
 app.use(cors({
@@ -20,35 +16,34 @@ app.use(cors({
   credentials: false
 }));
 
-// Configure multer for file uploads
-const upload = multer({ dest: "uploads/" });
-
-// Check if required environment variables are set
-if (!process.env.GOOGLE_CLIENT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY) {
-  console.error("Missing Google Cloud credentials in environment variables");
-  console.error("Make sure these environment variables are set in your .env file:");
-  console.error("- GOOGLE_CLIENT_EMAIL");
-  console.error("- GOOGLE_PRIVATE_KEY");
-  process.exit(1);
-}
+// Configure multer to accept multiple image formats
+const upload = multer({ 
+  dest: "uploads/",
+  fileFilter: (req, file, cb) => {
+    // Accept common image formats
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Unsupported file format: ${file.mimetype}`));
+    }
+  }
+});
 
 // Initialize Google Vision client
 let client;
 
 try {
-  // Try using a credentials JSON file first
   const credentialsJson = JSON.parse(fs.readFileSync('./service-account-key.json', 'utf8'));
   console.log("✓ Found service-account-key.json");
   console.log("  Project ID:", credentialsJson.project_id);
   console.log("  Service Account Email:", credentialsJson.client_email);
-  console.log("  Private Key starts with:", credentialsJson.private_key.substring(0, 30));
   
   client = new vision.ImageAnnotatorClient({
     keyFilename: './service-account-key.json'
   });
   console.log("✓ Successfully initialized Vision client with service-account-key.json");
 } catch (e) {
-  // Fallback to environment variables
   console.log("⚠ Could not use service-account-key.json:", e.message);
   console.log("⚠ Falling back to environment variables");
   
@@ -59,17 +54,109 @@ try {
   
   const privateKey = process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n");
   
-  console.log("DEBUG: Using environment variables");
-  console.log("DEBUG: Private key starts with:", privateKey.substring(0, 50));
-  console.log("DEBUG: Private key ends with:", privateKey.substring(privateKey.length - 50));
-  console.log("DEBUG: Client email:", process.env.GOOGLE_CLIENT_EMAIL);
-  
   client = new vision.ImageAnnotatorClient({
     credentials: {
       client_email: process.env.GOOGLE_CLIENT_EMAIL,
       private_key: privateKey,
     },
   });
+}
+
+// Function to parse receipt text and extract universal fields
+function parseReceiptText(rawText) {
+  const receipt = {
+    store_name: null,
+    store_address: null,
+    store_phone: null,
+    transaction_date: null,
+    transaction_time: null,
+    items: [],
+    subtotal: null,
+    tax: null,
+    total: null,
+    payment_method: null,
+    reference_number: null,
+    raw_text: rawText
+  };
+
+  const lines = rawText.split('\n').map(line => line.trim()).filter(line => line);
+
+  // Extract store name (usually first line or near top)
+  if (lines.length > 0) {
+    receipt.store_name = lines[0];
+  }
+
+  // Extract date and time
+  const datePattern = /(\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})|(\w+\s+\d{1,2},?\s+\d{4})/gi;
+  const timePattern = /(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)/gi;
+  
+  rawText.match(datePattern)?.forEach(match => {
+    receipt.transaction_date = match;
+  });
+  
+  rawText.match(timePattern)?.forEach(match => {
+    receipt.transaction_time = match;
+  });
+
+  // Extract phone number
+  const phonePattern = /(\d{3}[-.\s]?\d{3}[-.\s]?\d{4})|(\(\d{3}\)\s*\d{3}[-.\s]?\d{4})/g;
+  const phoneMatch = rawText.match(phonePattern);
+  if (phoneMatch) {
+    receipt.store_phone = phoneMatch[0];
+  }
+
+  // Extract address (usually contains street, city, province)
+  const addressPattern = /(\d+\s+[\w\s]+(?:ST|St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard).*(?:ON|QC|BC|AB|MB|SK|NS|NB|PE|NL|YT|NT|NU).*\d{1}[A-Z]\d|.*\d{5}(?:-\d{4})?)/gi;
+  const addressMatch = rawText.match(addressPattern);
+  if (addressMatch) {
+    receipt.store_address = addressMatch[0];
+  }
+
+  // Extract monetary amounts (TOTAL, SUBTOTAL, TAX)
+  const amounts = rawText.match(/\$?\s*\d+\.\d{2}/g) || [];
+  const totalPattern = /TOTAL:?\s*\$?\s*(\d+\.\d{2})/i;
+  const subtotalPattern = /SUBTOTAL:?\s*\$?\s*(\d+\.\d{2})/i;
+  const taxPattern = /(?:GST|HST|TAX|Sales Tax):?\s*\$?\s*(\d+\.\d{2})/i;
+
+  const totalMatch = rawText.match(totalPattern);
+  if (totalMatch) {
+    receipt.total = parseFloat(totalMatch[1]);
+  }
+
+  const subtotalMatch = rawText.match(subtotalPattern);
+  if (subtotalMatch) {
+    receipt.subtotal = parseFloat(subtotalMatch[1]);
+  }
+
+  const taxMatch = rawText.match(taxPattern);
+  if (taxMatch) {
+    receipt.tax = parseFloat(taxMatch[1]);
+  }
+
+  // Extract payment method
+  if (rawText.match(/DEBIT|debit/i)) {
+    receipt.payment_method = "DEBIT";
+  } else if (rawText.match(/CREDIT|credit/i)) {
+    receipt.payment_method = "CREDIT";
+  } else if (rawText.match(/CASH|cash/i)) {
+    receipt.payment_method = "CASH";
+  }
+
+  // Extract reference number
+  const referencePattern = /(?:Reference|Ref|REFERENCE|REF)[\s#:]*(\d+)/i;
+  const refMatch = rawText.match(referencePattern);
+  if (refMatch) {
+    receipt.reference_number = refMatch[1];
+  }
+
+  // Extract items (simple approach - lines between items markers)
+  const itemLines = lines.filter(line => 
+    !line.match(/TOTAL|SUBTOTAL|PAYMENT|DEBIT|CREDIT|CASH|GST|HST/i) &&
+    line.length > 3
+  );
+  receipt.items = itemLines.slice(0, 20); // Limit to first 20 lines
+
+  return receipt;
 }
 
 // Upload endpoint
@@ -79,32 +166,32 @@ app.post("/upload", upload.single("receipt"), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
   try {
-    // Check if file exists and get file stats
     const fileStats = fs.statSync(req.file.path);
     console.log("📁 File stats:");
     console.log("   - Path:", req.file.path);
     console.log("   - Size:", (fileStats.size / 1024 / 1024).toFixed(2), "MB");
     console.log("   - MIME type:", req.file.mimetype);
     
-    // Read file as buffer
     let imageBuffer = fs.readFileSync(req.file.path);
     console.log("📁 Original image buffer size:", (imageBuffer.length / 1024 / 1024).toFixed(2), "MB");
     
-    // Compress image if it's larger than 20MB
-    if (imageBuffer.length > 20 * 1024 * 1024) {
-      console.log("🗜️  Compressing image...");
+    // Always compress image to be safe
+    console.log("🗜️  Compressing image...");
+    try {
       imageBuffer = await sharp(imageBuffer)
-        .resize(2000, 2000, {
+        .resize(1500, 1500, {
           fit: 'inside',
           withoutEnlargement: true
         })
-        .jpeg({ quality: 80 })
+        .jpeg({ quality: 70 })
         .toBuffer();
       console.log("🗜️  Compressed image buffer size:", (imageBuffer.length / 1024 / 1024).toFixed(2), "MB");
+    } catch (sharpError) {
+      console.error("⚠️  Sharp compression failed:", sharpError.message);
+      console.log("📌 Attempting with original image...");
     }
     
     console.log("📸 Processing image with Google Vision...");
-    // Send image as buffer to Google Vision
     const [result] = await client.textDetection({
       image: {
         content: imageBuffer
@@ -115,26 +202,24 @@ app.post("/upload", upload.single("receipt"), async (req, res) => {
     console.log("📊 Detection results:");
     console.log("   - Total annotations found:", detections.length);
     
-    if (detections.length > 0) {
-      console.log("   - Full text length:", detections[0].description.length);
-      console.log("   - First 100 chars:", detections[0].description.substring(0, 100));
-    } else {
-      console.log("   - ⚠️ No text detected in image");
-    }
-    
     const fullText = detections.length ? detections[0].description : "";
+    
+    // Parse the receipt text to extract universal fields
+    const parsedReceipt = parseReceiptText(fullText);
+    
+    console.log("📋 Parsed receipt data:", JSON.stringify(parsedReceipt, null, 2));
 
     // Delete the uploaded file after processing
     fs.unlinkSync(req.file.path);
 
     res.json({ 
-      text: fullText,
-      detections_found: detections.length,
-      confidence: detections.length > 0 ? detections[0].confidence : 0
+      success: true,
+      receipt: parsedReceipt,
+      raw_ocr_text: fullText,
+      detections_found: detections.length
     });
   } catch (error) {
     console.error("❌ Error during OCR processing:", error.message);
-    console.error("Full error:", error);
     res.status(500).json({ error: "OCR processing failed", details: error.message });
   }
 });

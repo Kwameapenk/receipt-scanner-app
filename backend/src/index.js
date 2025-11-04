@@ -4,11 +4,16 @@ import cors from "cors";
 import multer from "multer";
 import vision from "@google-cloud/vision";
 import fs from "fs";
+
 dotenv.config();
 
 const app = express();
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: false
+}));
 
 // Configure multer for file uploads
 const upload = multer({ dest: "uploads/" });
@@ -26,7 +31,6 @@ if (!process.env.GOOGLE_CLIENT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY) {
 const client = new vision.ImageAnnotatorClient({
   credentials: {
     client_email: process.env.GOOGLE_CLIENT_EMAIL,
-    // Replace the double backslashes with a single backslash and use proper escaping
     private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n"),
   },
 });
@@ -59,6 +63,5 @@ app.get("/", (req, res) => {
 });
 
 app.listen(PORT, () => {
-  // Use string interpolation for correct console.log syntax
   console.log(`Server running on port ${PORT}`);
 });

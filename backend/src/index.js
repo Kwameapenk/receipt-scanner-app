@@ -7,6 +7,10 @@ import fs from "fs";
 
 dotenv.config();
 
+console.log("🔍 DEBUG: App starting...");
+console.log("🔍 Current directory:", process.cwd());
+console.log("🔍 Files in current directory:", require('fs').readdirSync('.'));
+
 const app = express();
 app.use(express.json());
 app.use(cors({
@@ -28,12 +32,44 @@ if (!process.env.GOOGLE_CLIENT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY) {
 }
 
 // Initialize Google Vision client
-const client = new vision.ImageAnnotatorClient({
-  credentials: {
-    client_email: process.env.GOOGLE_CLIENT_EMAIL,
-    private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n"),
-  },
-});
+let client;
+
+try {
+  // Try using a credentials JSON file first
+  const credentialsJson = JSON.parse(fs.readFileSync('./service-account-key.json', 'utf8'));
+  console.log("✓ Found service-account-key.json");
+  console.log("  Project ID:", credentialsJson.project_id);
+  console.log("  Service Account Email:", credentialsJson.client_email);
+  console.log("  Private Key starts with:", credentialsJson.private_key.substring(0, 30));
+  
+  client = new vision.ImageAnnotatorClient({
+    keyFilename: './service-account-key.json'
+  });
+  console.log("✓ Successfully initialized Vision client with service-account-key.json");
+} catch (e) {
+  // Fallback to environment variables
+  console.log("⚠ Could not use service-account-key.json:", e.message);
+  console.log("⚠ Falling back to environment variables");
+  
+  if (!process.env.GOOGLE_PRIVATE_KEY) {
+    console.error("❌ ERROR: GOOGLE_PRIVATE_KEY not set in environment variables");
+    process.exit(1);
+  }
+  
+  const privateKey = process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n");
+  
+  console.log("DEBUG: Using environment variables");
+  console.log("DEBUG: Private key starts with:", privateKey.substring(0, 50));
+  console.log("DEBUG: Private key ends with:", privateKey.substring(privateKey.length - 50));
+  console.log("DEBUG: Client email:", process.env.GOOGLE_CLIENT_EMAIL);
+  
+  client = new vision.ImageAnnotatorClient({
+    credentials: {
+      client_email: process.env.GOOGLE_CLIENT_EMAIL,
+      private_key: privateKey,
+    },
+  });
+}
 
 // Upload endpoint
 app.post("/upload", upload.single("receipt"), async (req, res) => {

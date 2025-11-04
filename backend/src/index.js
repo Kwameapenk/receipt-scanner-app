@@ -4,12 +4,13 @@ import cors from "cors";
 import multer from "multer";
 import vision from "@google-cloud/vision";
 import fs from "fs";
+import sharp from "sharp";
 
 dotenv.config();
 
 console.log("🔍 DEBUG: App starting...");
 console.log("🔍 Current directory:", process.cwd());
-console.log("🔍 Files in current directory:", require('fs').readdirSync('.'));
+console.log("🔍 Files in current directory:", fs.readdirSync('.'));
 
 const app = express();
 app.use(express.json());
@@ -73,22 +74,68 @@ try {
 
 // Upload endpoint
 app.post("/upload", upload.single("receipt"), async (req, res) => {
-  console.log("Received file:", req.file);
+  console.log("📤 Received file:", req.file);
   
   if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
   try {
-    const [result] = await client.textDetection(req.file.path);
+    // Check if file exists and get file stats
+    const fileStats = fs.statSync(req.file.path);
+    console.log("📁 File stats:");
+    console.log("   - Path:", req.file.path);
+    console.log("   - Size:", (fileStats.size / 1024 / 1024).toFixed(2), "MB");
+    console.log("   - MIME type:", req.file.mimetype);
+    
+    // Read file as buffer
+    let imageBuffer = fs.readFileSync(req.file.path);
+    console.log("📁 Original image buffer size:", (imageBuffer.length / 1024 / 1024).toFixed(2), "MB");
+    
+    // Compress image if it's larger than 20MB
+    if (imageBuffer.length > 20 * 1024 * 1024) {
+      console.log("🗜️  Compressing image...");
+      imageBuffer = await sharp(imageBuffer)
+        .resize(2000, 2000, {
+          fit: 'inside',
+          withoutEnlargement: true
+        })
+        .jpeg({ quality: 80 })
+        .toBuffer();
+      console.log("🗜️  Compressed image buffer size:", (imageBuffer.length / 1024 / 1024).toFixed(2), "MB");
+    }
+    
+    console.log("📸 Processing image with Google Vision...");
+    // Send image as buffer to Google Vision
+    const [result] = await client.textDetection({
+      image: {
+        content: imageBuffer
+      }
+    });
     const detections = result.textAnnotations;
+    
+    console.log("📊 Detection results:");
+    console.log("   - Total annotations found:", detections.length);
+    
+    if (detections.length > 0) {
+      console.log("   - Full text length:", detections[0].description.length);
+      console.log("   - First 100 chars:", detections[0].description.substring(0, 100));
+    } else {
+      console.log("   - ⚠️ No text detected in image");
+    }
+    
     const fullText = detections.length ? detections[0].description : "";
 
     // Delete the uploaded file after processing
     fs.unlinkSync(req.file.path);
 
-    res.json({ text: fullText });
+    res.json({ 
+      text: fullText,
+      detections_found: detections.length,
+      confidence: detections.length > 0 ? detections[0].confidence : 0
+    });
   } catch (error) {
-    console.error("Error during OCR processing:", error);
-    res.status(500).json({ error: "OCR processing failed" });
+    console.error("❌ Error during OCR processing:", error.message);
+    console.error("Full error:", error);
+    res.status(500).json({ error: "OCR processing failed", details: error.message });
   }
 });
 

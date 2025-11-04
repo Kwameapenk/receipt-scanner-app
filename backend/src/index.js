@@ -5,8 +5,10 @@ import multer from "multer";
 import vision from "@google-cloud/vision";
 import fs from "fs";
 import sharp from "sharp";
+import logger from "./logger.js";
 
 dotenv.config();
+logger.info("Application starting...", { env: process.env.NODE_ENV || "development" });
 
 const app = express();
 app.use(express.json());

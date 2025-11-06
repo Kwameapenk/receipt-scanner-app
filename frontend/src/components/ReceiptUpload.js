@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Upload, Check, Edit2, X, Save, Camera } from 'lucide-react';
 
 export default function ReceiptScanner() {
   const [file, setFile] = useState(null);
@@ -104,7 +103,7 @@ export default function ReceiptScanner() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <Camera className="w-8 h-8 text-blue-600" />
+            <span className="text-4xl">📷</span>
             <h1 className="text-3xl md:text-4xl font-bold text-gray-800">Receipt Scanner</h1>
           </div>
           <p className="text-gray-600">Scan your receipts and organize your expenses</p>
@@ -131,7 +130,7 @@ export default function ReceiptScanner() {
                       : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50'
                   }`}
                 >
-                  <Upload className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+                  <div className="text-5xl mx-auto mb-3">📤</div>
                   {file ? (
                     <div>
                       <p className="text-green-600 font-semibold">{file.name}</p>
@@ -257,15 +256,13 @@ export default function ReceiptScanner() {
                 onClick={handleCancel}
                 className="flex-1 py-3 px-4 rounded-lg font-semibold text-gray-700 bg-gray-200 hover:bg-gray-300 transition flex items-center justify-center gap-2"
               >
-                <X className="w-5 h-5" />
-                Cancel
+                ❌ Cancel
               </button>
               <button
                 onClick={handleSave}
                 className="flex-1 py-3 px-4 rounded-lg font-semibold text-white bg-green-600 hover:bg-green-700 transition shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
               >
-                <Save className="w-5 h-5" />
-                Save Receipt
+                ✅ Save Receipt
               </button>
             </div>
           </div>

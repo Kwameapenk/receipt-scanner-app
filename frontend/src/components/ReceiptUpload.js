@@ -21,11 +21,6 @@ export default function ReceiptScanner() {
       return;
     }
 
-    if (!receiptName.trim()) {
-      setError('Please enter a receipt name');
-      return;
-    }
-
     setLoading(true);
     setError('');
     const formData = new FormData();
@@ -41,7 +36,7 @@ export default function ReceiptScanner() {
       const data = await response.json();
       setReceipt({
         ...data,
-        receipt_name: receiptName
+        receipt_name: receiptName || 'Receipt'
       });
     } catch (err) {
       setError('Error processing receipt: ' + err.message);
@@ -58,52 +53,114 @@ export default function ReceiptScanner() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
-      <div className="max-w-xl mx-auto">
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(to bottom right, #eff6ff, #f3e8ff)',
+      padding: '16px'
+    }}>
+      <div style={{
+        maxWidth: '600px',
+        margin: '0 auto'
+      }}>
         {!receipt ? (
           // Input Section
-          <div className="bg-white rounded-2xl shadow-lg p-8">
-            <h1 className="text-4xl font-bold text-center mb-2 text-gray-800">📸 Receipt Scanner</h1>
-            <p className="text-center text-gray-600 mb-8">Scan and organize your receipts</p>
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+            padding: '32px'
+          }}>
+            <h1 style={{
+              fontSize: '32px',
+              fontWeight: 'bold',
+              textAlign: 'center',
+              marginBottom: '8px',
+              color: '#1f2937'
+            }}>📸 Receipt Scanner</h1>
+            <p style={{
+              textAlign: 'center',
+              color: '#6b7280',
+              marginBottom: '32px'
+            }}>Scan and organize your receipts</p>
 
-            <div className="space-y-6">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               {/* Receipt Name Input */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Receipt Name</label>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#374151',
+                  marginBottom: '8px'
+                }}>Receipt Name (Optional)</label>
                 <input
                   type="text"
                   value={receiptName}
                   onChange={(e) => setReceiptName(e.target.value)}
-                  placeholder="e.g., Grocery Shopping, Gas Station"
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
+                  placeholder="e.g., Grocery Shopping"
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: '2px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    boxSizing: 'border-box',
+                    outline: 'none',
+                    transition: 'border-color 0.2s'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
                 />
               </div>
 
               {/* File Selection */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Choose Receipt Image</label>
-                <div className="relative">
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#374151',
+                  marginBottom: '8px'
+                }}>Choose Receipt Image</label>
+                <div style={{ position: 'relative' }}>
                   <input
                     type="file"
                     accept="image/*"
                     onChange={handleFileChange}
-                    className="hidden"
+                    style={{ display: 'none' }}
                     id="file-input"
                   />
                   <label
                     htmlFor="file-input"
-                    className="block w-full p-6 border-2 border-dashed border-gray-300 rounded-lg text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition"
+                    style={{
+                      display: 'block',
+                      padding: '24px',
+                      border: '2px dashed #d1d5db',
+                      borderRadius: '8px',
+                      textAlign: 'center',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      background: file ? '#dcfce7' : '#f9fafb'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#3b82f6';
+                      e.currentTarget.style.background = '#eff6ff';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#d1d5db';
+                      e.currentTarget.style.background = file ? '#dcfce7' : '#f9fafb';
+                    }}
                   >
-                    <div className="text-4xl mb-2">📷</div>
+                    <div style={{ fontSize: '32px', marginBottom: '8px' }}>📷</div>
                     {file ? (
                       <div>
-                        <p className="text-green-600 font-semibold">{file.name}</p>
-                        <p className="text-sm text-gray-600">Click to change</p>
+                        <p style={{ color: '#16a34a', fontWeight: '600' }}>{file.name}</p>
+                        <p style={{ fontSize: '14px', color: '#6b7280' }}>Click to change</p>
                       </div>
                     ) : (
                       <div>
-                        <p className="text-gray-700 font-semibold">Click to upload</p>
-                        <p className="text-sm text-gray-600">PNG, JPG, HEIC or WEBP</p>
+                        <p style={{ color: '#374151', fontWeight: '600' }}>Click to upload</p>
+                        <p style={{ fontSize: '14px', color: '#6b7280' }}>PNG, JPG, HEIC or WEBP</p>
                       </div>
                     )}
                   </label>
@@ -112,7 +169,13 @@ export default function ReceiptScanner() {
 
               {/* Error Message */}
               {error && (
-                <div className="p-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded">
+                <div style={{
+                  padding: '16px',
+                  background: '#fee2e2',
+                  borderLeft: '4px solid #ef4444',
+                  color: '#b91c1c',
+                  borderRadius: '4px'
+                }}>
                   {error}
                 </div>
               )}
@@ -120,93 +183,209 @@ export default function ReceiptScanner() {
               {/* Process Button */}
               <button
                 onClick={handleProcess}
-                disabled={loading || !file || !receiptName.trim()}
-                className={`w-full py-3 px-6 rounded-lg font-semibold text-white transition ${
-                  loading || !file || !receiptName.trim()
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl'
-                }`}
+                disabled={loading || !file}
+                style={{
+                  width: '100%',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  color: 'white',
+                  border: 'none',
+                  cursor: file && !loading ? 'pointer' : 'not-allowed',
+                  background: file && !loading ? '#2563eb' : '#9ca3af',
+                  transition: 'all 0.2s',
+                  fontSize: '16px'
+                }}
+                onMouseEnter={(e) => {
+                  if (file && !loading) {
+                    e.target.style.background = '#1d4ed8';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (file && !loading) {
+                    e.target.style.background = '#2563eb';
+                  }
+                }}
               >
                 {loading ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <div style={{
+                      width: '20px',
+                      height: '20px',
+                      border: '2px solid white',
+                      borderTop: '2px solid transparent',
+                      borderRadius: '50%',
+                      animation: 'spin 0.6s linear infinite'
+                    }}></div>
                     Processing...
                   </div>
                 ) : (
                   '✓ Process Receipt'
                 )}
               </button>
+
+              <style>{`
+                @keyframes spin {
+                  to { transform: rotate(360deg); }
+                }
+              `}</style>
             </div>
           </div>
         ) : (
           // Results Section
-          <div className="space-y-6">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {/* Header Card */}
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white">
-                <h2 className="text-3xl font-bold">{receipt.receipt_name}</h2>
-                <p className="text-blue-100 mt-1">Results</p>
+            <div style={{
+              background: 'white',
+              borderRadius: '16px',
+              boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                background: 'linear-gradient(to right, #2563eb, #7c3aed)',
+                padding: '24px',
+                color: 'white'
+              }}>
+                <h2 style={{
+                  fontSize: '28px',
+                  fontWeight: 'bold',
+                  margin: '0 0 8px 0'
+                }}>{receipt.receipt_name}</h2>
+                <p style={{
+                  margin: 0,
+                  opacity: 0.9
+                }}>Results</p>
               </div>
 
               {/* Results Content */}
-              <div className="p-8 space-y-8">
+              <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '32px' }}>
                 {/* Store Info */}
                 <div>
-                  <h3 className="text-lg font-bold text-gray-800 mb-4">Store Information</h3>
-                  <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
+                  <h3 style={{
+                    fontSize: '18px',
+                    fontWeight: 'bold',
+                    color: '#1f2937',
+                    marginBottom: '16px'
+                  }}>Store Information</h3>
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                    background: '#f3f4f6',
+                    padding: '16px',
+                    borderRadius: '8px'
+                  }}>
                     <div>
-                      <p className="text-sm text-gray-600">Store Name</p>
-                      <p className="text-lg font-semibold text-gray-900">{receipt.receipt.store_name || '—'}</p>
+                      <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>Store Name</p>
+                      <p style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', margin: '4px 0 0 0' }}>
+                        {receipt.receipt.store_name || '—'}
+                      </p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Address</p>
-                      <p className="text-gray-800">{receipt.receipt.store_address || '—'}</p>
+                      <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>Address</p>
+                      <p style={{ color: '#1f2937', margin: '4px 0 0 0' }}>
+                        {receipt.receipt.store_address || '—'}
+                      </p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Phone</p>
-                      <p className="text-gray-800">{receipt.receipt.store_phone || '—'}</p>
+                      <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>Phone</p>
+                      <p style={{ color: '#1f2937', margin: '4px 0 0 0' }}>
+                        {receipt.receipt.store_phone || '—'}
+                      </p>
                     </div>
                   </div>
                 </div>
 
                 {/* Transaction Info */}
                 <div>
-                  <h3 className="text-lg font-bold text-gray-800 mb-4">Transaction Details</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-sm text-gray-600">Date</p>
-                      <p className="font-semibold text-gray-900">{receipt.receipt.transaction_date || '—'}</p>
+                  <h3 style={{
+                    fontSize: '18px',
+                    fontWeight: 'bold',
+                    color: '#1f2937',
+                    marginBottom: '16px'
+                  }}>Transaction Details</h3>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '16px'
+                  }}>
+                    <div style={{
+                      background: '#f3f4f6',
+                      padding: '16px',
+                      borderRadius: '8px'
+                    }}>
+                      <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>Date</p>
+                      <p style={{ fontWeight: '600', color: '#1f2937', margin: '8px 0 0 0' }}>
+                        {receipt.receipt.transaction_date || '—'}
+                      </p>
                     </div>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-sm text-gray-600">Time</p>
-                      <p className="font-semibold text-gray-900">{receipt.receipt.transaction_time || '—'}</p>
+                    <div style={{
+                      background: '#f3f4f6',
+                      padding: '16px',
+                      borderRadius: '8px'
+                    }}>
+                      <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>Time</p>
+                      <p style={{ fontWeight: '600', color: '#1f2937', margin: '8px 0 0 0' }}>
+                        {receipt.receipt.transaction_time || '—'}
+                      </p>
                     </div>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-sm text-gray-600">Payment</p>
-                      <p className="font-semibold text-gray-900">{receipt.receipt.payment_method || '—'}</p>
+                    <div style={{
+                      background: '#f3f4f6',
+                      padding: '16px',
+                      borderRadius: '8px'
+                    }}>
+                      <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>Payment</p>
+                      <p style={{ fontWeight: '600', color: '#1f2937', margin: '8px 0 0 0' }}>
+                        {receipt.receipt.payment_method || '—'}
+                      </p>
                     </div>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-sm text-gray-600">Reference #</p>
-                      <p className="font-semibold text-gray-900">{receipt.receipt.reference_number || '—'}</p>
+                    <div style={{
+                      background: '#f3f4f6',
+                      padding: '16px',
+                      borderRadius: '8px'
+                    }}>
+                      <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>Reference #</p>
+                      <p style={{ fontWeight: '600', color: '#1f2937', margin: '8px 0 0 0' }}>
+                        {receipt.receipt.reference_number || '—'}
+                      </p>
                     </div>
                   </div>
                 </div>
 
                 {/* Amount Summary */}
-                <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-6 rounded-lg border-2 border-blue-200">
-                  <h3 className="text-lg font-bold text-gray-800 mb-4">Amount Summary</h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-gray-700">
+                <div style={{
+                  background: 'linear-gradient(to bottom right, #eff6ff, #f3e8ff)',
+                  padding: '24px',
+                  borderRadius: '8px',
+                  border: '2px solid #dbeafe'
+                }}>
+                  <h3 style={{
+                    fontSize: '18px',
+                    fontWeight: 'bold',
+                    color: '#1f2937',
+                    marginBottom: '16px',
+                    margin: 0
+                  }}>Amount Summary</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#374151' }}>
                       <span>Subtotal:</span>
-                      <span className="font-semibold">${receipt.receipt.subtotal || '0.00'}</span>
+                      <span style={{ fontWeight: '600' }}>${receipt.receipt.subtotal || '0.00'}</span>
                     </div>
                     {receipt.receipt.tax && (
-                      <div className="flex justify-between text-gray-700">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#374151' }}>
                         <span>Tax:</span>
-                        <span className="font-semibold">${receipt.receipt.tax}</span>
+                        <span style={{ fontWeight: '600' }}>${receipt.receipt.tax}</span>
                       </div>
                     )}
-                    <div className="flex justify-between text-lg font-bold text-blue-600 pt-3 border-t-2 border-gray-300">
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontSize: '18px',
+                      fontWeight: 'bold',
+                      color: '#2563eb',
+                      paddingTop: '12px',
+                      borderTop: '2px solid #d1d5db'
+                    }}>
                       <span>Total:</span>
                       <span>${receipt.receipt.total || '0.00'}</span>
                     </div>
@@ -215,8 +394,20 @@ export default function ReceiptScanner() {
 
                 {/* Items Detected */}
                 <div>
-                  <h3 className="text-lg font-bold text-gray-800 mb-4">Items Detected ({receipt.detections_found})</h3>
-                  <p className="text-sm text-gray-600 bg-blue-50 p-4 rounded-lg">
+                  <h3 style={{
+                    fontSize: '18px',
+                    fontWeight: 'bold',
+                    color: '#1f2937',
+                    marginBottom: '16px'
+                  }}>Items Detected ({receipt.detections_found})</h3>
+                  <p style={{
+                    fontSize: '14px',
+                    color: '#6b7280',
+                    background: '#eff6ff',
+                    padding: '16px',
+                    borderRadius: '8px',
+                    margin: 0
+                  }}>
                     {receipt.detections_found} text elements detected in the receipt image.
                   </p>
                 </div>
@@ -226,7 +417,20 @@ export default function ReceiptScanner() {
             {/* Action Button */}
             <button
               onClick={handleReset}
-              className="w-full py-3 px-6 rounded-lg font-semibold text-white bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition"
+              style={{
+                width: '100%',
+                padding: '12px 24px',
+                borderRadius: '8px',
+                fontWeight: '600',
+                color: 'white',
+                border: 'none',
+                background: '#2563eb',
+                cursor: 'pointer',
+                fontSize: '16px',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => e.target.style.background = '#1d4ed8'}
+              onMouseLeave={(e) => e.target.style.background = '#2563eb'}
             >
               ← Scan Another Receipt
             </button>

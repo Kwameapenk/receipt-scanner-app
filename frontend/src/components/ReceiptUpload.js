@@ -27,7 +27,7 @@ export default function ReceiptScanner() {
     formData.append('receipt', file);
 
     try {
-      const response = await fetch('http://localhost:5050/upload', {
+      const response = await fetch(process.env.REACT_APP_API_URL + '/upload', {
         method: 'POST',
         body: formData
       });
